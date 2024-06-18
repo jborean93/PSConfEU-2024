@@ -1,0 +1,1 @@
+dotnet publish --framework net7.0 $PSScriptRoot/PythonForge.csproj --configuration Release
