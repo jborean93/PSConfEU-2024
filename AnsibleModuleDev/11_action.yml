@@ -1,0 +1,6 @@
+- hosts: windows
+  gather_facts: false
+  tasks:
+  - pwsh.conf.smb_copy:
+      src: '{{ playbook_dir }}/11_action.yml'
+      dest: D:\test.txt

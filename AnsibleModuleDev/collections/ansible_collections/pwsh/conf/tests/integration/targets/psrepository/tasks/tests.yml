@@ -1,0 +1,135 @@
+- name: create repository - check mode
+  pwsh.conf.psrepository:
+    name: '{{ test_repo }}'
+    url: http://foo.com
+  check_mode: true
+  register: create_check
+
+- name: get result of create repository - check mode
+  ansible.windows.win_powershell:
+    script: Get-PSResourceRepository -Name {{ test_repo }} -ErrorAction SilentlyContinue
+  register: create_actual_check
+
+- name: assert create repository - check mode
+  assert:
+    that:
+    - create_check is changed
+    - create_actual_check.output == []
+
+- name: create repository
+  pwsh.conf.psrepository:
+    name: '{{ test_repo }}'
+    url: http://foo.com
+  register: create
+
+- name: get result of create repository
+  ansible.windows.win_powershell:
+    script: Get-PSResourceRepository -Name {{ test_repo }} -ErrorAction SilentlyContinue
+  register: create_actual
+
+- name: assert create repository
+  assert:
+    that:
+    - create is changed
+    - create_actual.output | length == 1
+    - create_actual.output[0].Name == test_repo
+    - create_actual.output[0].Uri.OriginalString == 'http://foo.com/'
+
+- name: create repository - idempotent
+  pwsh.conf.psrepository:
+    name: '{{ test_repo }}'
+    url: http://foo.com
+  register: create_again
+
+- name: assert create repository - idempotent
+  assert:
+    that:
+    - not create_again is changed
+
+
+- name: edit repository - check mode
+  pwsh.conf.psrepository:
+    name: '{{ test_repo }}'
+    url: http://bar.com
+  check_mode: true
+  register: edit_check
+
+- name: get result of edit repository - check mode
+  ansible.windows.win_powershell:
+    script: Get-PSResourceRepository -Name {{ test_repo }} -ErrorAction SilentlyContinue
+  register: edit_actual_check
+
+- name: assert edit repository - check mode
+  assert:
+    that:
+    - edit_check is changed
+    - edit_actual_check.output | length == 1
+    - edit_actual_check.output[0].Name == test_repo
+    - edit_actual_check.output[0].Uri.OriginalString == 'http://foo.com/'
+
+- name: edit repository
+  pwsh.conf.psrepository:
+    name: '{{ test_repo }}'
+    url: http://bar.com
+  register: edit
+
+- name: get result of edit repository
+  ansible.windows.win_powershell:
+    script: Get-PSResourceRepository -Name {{ test_repo }} -ErrorAction SilentlyContinue
+  register: edit_actual
+
+- name: assert edit repository
+  assert:
+    that:
+    - edit is changed
+    - edit_actual.output | length == 1
+    - edit_actual.output[0].Name == test_repo
+    - edit_actual.output[0].Uri.OriginalString == 'http://bar.com/'
+
+- name: remove repository - check mode
+  pwsh.conf.psrepository:
+    name: '{{ test_repo }}'
+    state: absent
+  check_mode: true
+  register: remove_check
+
+- name: get result of remove repository - check mode
+  ansible.windows.win_powershell:
+    script: Get-PSResourceRepository -Name {{ test_repo }} -ErrorAction SilentlyContinue
+  register: remove_actual_check
+
+- name: assert remove repository - check mode
+  assert:
+    that:
+    - remove_check is changed
+    - remove_actual_check.output | length == 1
+    - remove_actual_check.output[0].Name == test_repo
+    - remove_actual_check.output[0].Uri.OriginalString == 'http://bar.com/'
+
+- name: remove repository
+  pwsh.conf.psrepository:
+    name: '{{ test_repo }}'
+    state: absent
+  register: remove
+
+- name: get result of remove repository
+  ansible.windows.win_powershell:
+    script: Get-PSResourceRepository -Name {{ test_repo }} -ErrorAction SilentlyContinue
+  register: remove_actual
+
+- name: assert remove repository
+  assert:
+    that:
+    - remove is changed
+    - remove_actual.output == []
+
+- name: remove repository - idempotent
+  pwsh.conf.psrepository:
+    name: '{{ test_repo }}'
+    state: absent
+  register: remove_again
+
+- name: assert remove repository - idempotent
+  assert:
+    that:
+    - not remove_again is changed

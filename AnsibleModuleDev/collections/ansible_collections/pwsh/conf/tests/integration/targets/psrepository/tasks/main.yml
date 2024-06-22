@@ -1,0 +1,14 @@
+- name: remove any test data before test
+  pwsh.conf.psrepository:
+    name: '{{ test_repo }}'
+    state: absent
+
+- block:
+  - name: run tests
+    import_tasks: tests.yml
+
+  always:
+  - name: remove test data after test
+    pwsh.conf.psrepository:
+      name: '{{ test_repo }}'
+      state: absent

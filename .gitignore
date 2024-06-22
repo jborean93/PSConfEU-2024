@@ -360,3 +360,14 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# VSCode settings
+.vscode/
+
+# Custom
+AnsibleModuleDev/inventory
+AnsibleModuleDev/psconfeu
+AnsibleModuleDev/collections/ansible_collections/ansible
+AnsibleModuleDev/collections/ansible_collections/pwsh/conf/plugins/modules/psrepository.*
+AnsibleModuleDev/collections/ansible_collections/pwsh/conf/tests/integration/inventory.winrm
+AnsibleModuleDev/collections/ansible_collections/pwsh/conf/tests/output/

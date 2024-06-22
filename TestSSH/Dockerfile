@@ -26,7 +26,7 @@ RUN echo 'secret' | passwd --stdin testuser
 
 # Configure SSH
 RUN ssh-keygen -A
-RUN sudo sed -i 's/^#\?PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+RUN sed -i 's/^#\?PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config
 RUN echo 'Subsystem powershell /usr/bin/pwsh -sshs -NoLogo' >> /etc/ssh/sshd_config
 
 # Run sshd.

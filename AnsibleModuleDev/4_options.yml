@@ -1,0 +1,29 @@
+- hosts: windows
+  gather_facts: false
+  tasks:
+  - pwsh.conf.4_options:
+      alias_one: foo
+      choices: bar
+      no_log: super secret
+      required: This is set
+
+      # Only one of the exclusive_set_* can be set
+      exclusive_set_2: set
+
+      # When option_that_requires is set, the others must also
+      # be set
+      option_that_requires: set
+      option_required_by_1: set
+      option_required_by_2: set
+
+      # If this is set to value1, the others must also be set
+      required_if_option: value1
+      required_if_option_1: set
+      required_if_option_2: set
+
+      # One of required_one_of_* must be set
+      required_one_of_1: set
+
+      # Both must be set together
+      required_together_1: set
+      required_together_2: set

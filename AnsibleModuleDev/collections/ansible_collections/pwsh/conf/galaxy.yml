@@ -1,0 +1,12 @@
+namespace: pwsh
+name: conf
+version: 1.0.0
+readme: README.md
+authors:
+  - Jordan Borean @jborean93
+description: |
+  Test collection for PSConfEU
+license_file: LICENSE
+tags:
+  - windows
+dependencies: {}

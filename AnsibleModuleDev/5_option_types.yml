@@ -1,0 +1,31 @@
+- hosts: windows
+  gather_facts: false
+  tasks:
+  - pwsh.conf.5_option_types:
+      bool: true
+      dict:
+        key1: value 1
+        key2: 2
+      dict_options:
+        int: '1'
+        bool: 'false'
+      float: 1.234
+      int: 2
+      json:
+        key1: value 1
+        key2: 2
+      list:
+      - value 1
+      - value 2
+      list_elements:
+      - 1
+      - '2'
+      list_of_dicts:
+      - int: 1
+        bool: false
+      - int: 2
+        bool: 'y'
+      path: '%SystemRoot%\System32'
+      raw: '1'
+      sid: SYSTEM
+      str: 1

@@ -1,0 +1,42 @@
+DOCUMENTATION:
+  module: psrepository
+  short_description: Manage PSResourceGet repositories.
+  description:
+    - This module can create, set, and remove PSResourceGet repositories
+      in PowerShell.
+    - This requires the C(Microsoft.PowerShell.PSResourceGet) module to be
+      installed on the target Windows host.
+  options:
+    name:
+      description:
+        - The name of the repository to manage.
+      required: true
+      type: str
+    state:
+      description:
+        - Set to C(absent) to remove the repository set by I(name).
+        - Set to C(present) to create/edit the repository set by I(name).
+      type: str
+      choices:
+        - absent
+        - present
+      default: present
+    url:
+      description:
+        - The URL to set the repository to.
+      type: str
+  author:
+    - Jordan Borean (@jborean93)
+
+EXAMPLES: |
+  - name: Create a repository call PSConfEU
+    pwsh.conf.psrepository:
+      name: PSConfEU
+      url: https://foo.com
+
+  - name: Remove the PSConfEU repository
+    pwsh.conf.psrepository:
+      name: PSConfEU
+      state: absent
+
+RETURNS: {}

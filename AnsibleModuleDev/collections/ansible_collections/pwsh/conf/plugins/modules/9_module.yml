@@ -1,0 +1,22 @@
+DOCUMENTATION:
+  module: module
+  short_description: Basic sentence to describe the module.
+  description:
+    - More in depth description to describe the module.
+    - Can be split up into separate entries to make it easier to write.
+  options:
+    option_name:
+      description:
+        - Description for this option
+      type: str  # Should match the $spec.options value
+      # Can also define these to match the spec
+      # choices: []
+      # default: ...
+      # required: true/false
+  author:
+    - Your name here
+
+EXAMPLES: |
+  # Examples here
+
+RETURNS: {}
