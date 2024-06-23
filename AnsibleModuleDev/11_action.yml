@@ -3,4 +3,4 @@
   tasks:
   - pwsh.conf.smb_copy:
       src: '{{ playbook_dir }}/11_action.yml'
-      dest: D:\test.txt
+      dest: D:\PSConfEU\test.yml

@@ -20,9 +20,11 @@ $url = $module.Params.url
 
 $repository = Get-PSResourceRepository -Name $name -ErrorAction SilentlyContinue
 
-if ($state -eq 'absent' -and $repository) {
-    Unregister-PSResourceRepository -Name $name
-    $module.Result.changed = $true
+if ($state -eq 'absent') {
+    if ($repository) {
+        Unregister-PSResourceRepository -Name $name
+        $module.Result.changed = $true
+    }
 }
 elseif ($state -eq 'present') {
     if ($repository) {

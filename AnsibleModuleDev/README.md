@@ -64,6 +64,21 @@ win-host | SUCCESS =>
 
 ## Examples
 
+### 0. Collection Setup
+The examples here use a local collection to bundle our examples.
+Collections in Ansible are essentially an artifact that contains various plugins and other Ansible content that we want to share.
+They can either be installed in a few locations but in our example we will use the playbook adjacent `collections` directory.
+The import mechanism on the Ansible side uses the same code as how Python imports content so has a few restrictions:
+
++ The collection must be installed under `$collectionDir/ansible_collections/$namespace/$name`
++ Only one version can be installed (last one wins)
++ Some tools, like `ansible-test` only work when running in the collection root
+
+In our example we have a collection `pwsh.conf` which represents the namespace `pwsh` and name `conf`.
+The collection is located in [collections/ansible_collections/pwsh/conf](./collections/ansible_collections/pwsh/) which is automatically picked up when running a playbook.
+If using a command that doesn't use a playbook, the `--playbook-dir .` option must be specified so it is picked up.
+The `--playbook-dir .` option can be omitted if the collection is installed in a normally search path like `~/.ansible/collections`.
+
 ### 1. Basic PowerShell Module
 Very basic example that outputs raw JSON back to Ansible:
 
@@ -81,6 +96,7 @@ Can be used to get input value from Ansible:
 
 ```bash
 ansible windows --playbook-dir . -m pwsh.conf.2_args -a foo=bar
+
 win-host | SUCCESS =>
     changed: false
     test: bar
@@ -536,7 +552,7 @@ win-host | CHANGED =>
     changed: true
 
 
-ansible windows --playbook-dir . -m pwsh.conf.psrepository -a 'name=PSConfEU url=http://foo.com' --diff
+ansible windows --playbook-dir . -m pwsh.conf.psrepository -a 'name=PSConfEU url=http://bar.com' --diff
 
 --- before
 +++ after
@@ -660,3 +676,50 @@ An action plugin can run specific commands on the target host, copy/fetch files 
 For example the `win_copy` module is implemented as an action plugin that invokes `win_stat` to get the remote file statistics, copies a file through the connection plugin, then invokes the `win_copy` module to copy that file into place.
 
 An example action plugin is the [smb_copy.py](./collections/ansible_collections/ansible/windows/plugins/action/smb_copy.py) which is similar to `win_copy` but will transfer the file using the SMB protocol which is faster than WinRM.
+
+### 12. Module Utils
+Module utils can be used to create code that is usable across multiple modules.
+PowerShell based modules can use module utils written in PowerShell and C# and are referenced by the `#AnsibleRequires` comment.
+
+PowerShell module utils are written as standalone `.psm1` modules which export functions that modules can call.
+C# module utils are written as C# code that is automatically compiled and run with the module.
+This compilation step has a few performance implications but can be more flexible than embedding `Add-Type` calls in your code.
+
+Module utils are stored in the collection directory [plugins/module_utils](./collections/ansible_collections/pwsh/conf/plugins/module_utils/).
+In our example we have [PowerShell.psm1](./collections/ansible_collections/pwsh/conf/plugins/module_utils/PowerShell.psm1) and [CSharp.cs](./collections/ansible_collections/pwsh/conf/plugins/module_utils/CSharp.cs).
+For our modules to reference these they need to add the following comments:
+
+```powershell
+#AnsibleRequires -CSharpUtil ..module_utils.CSharp
+#AnsibleRequires -PowerShell ..module_utils.PowerShell
+```
+
+The above uses a relative path to the module util, it is possible to use an absolute path instead
+
+```powershell
+#AnsibleRequires -CSharpUtil ansible_collections.pwsh.conf.plugins.module_utils.CSharp
+#AnsibleRequires -PowerShell ansible_collections.pwsh.conf.plugins.module_utils.PowerShell
+```
+
+The syntax is based on the Python import paths rather than the filesystem which is why `.` is used instead of `/`.
+Once imported, Ansible will bundle the module util code as part of the module execution runner and the functions inside the `psm1` are accessible like any other function.
+The same applies to C# module utils where it can be called like any other type.
+As the C# type name is rather long, it is recommended to use the `TypeAccelerator` comment to create an aliased shorthand name
+
+```csharp
+//TypeAccelerator -Name Pwsh.Conf.CSharp.Utils -TypeName Utils
+```
+
+The above will define the type `Utils` in the C# code under `Pwsh.Conf.CSharp.Utils`.
+Typically it is recommended to use the format `Namespace.Name.UtilName.TypeName` as part of the accelerator aliases to avoid collisions with other types.
+
+The module [12_module_utils](./collections/ansible_collections/pwsh/conf/plugins/modules/12_module_utils.ps1) is used as a test to show how each util is called and the results it returns:
+
+```bash
+ansible windows --playbook-dir . -m pwsh.conf.12_module_utils
+
+win-host | SUCCESS =>
+    changed: false
+    csharp: From C# util
+    pwsh: From PowerShell util
+```

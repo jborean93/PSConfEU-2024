@@ -31,9 +31,11 @@ if ($repository) {
     }
 }
 
-if ($state -eq 'absent' -and $repository) {
-    Unregister-PSResourceRepository -Name $name -WhatIf:$module.CheckMode
-    $module.Result.changed = $true
+if ($state -eq 'absent') {
+    if ($repository) {
+        Unregister-PSResourceRepository -Name $name -WhatIf:$module.CheckMode
+        $module.Result.changed = $true
+    }
 }
 elseif ($state -eq 'present') {
     if ($repository) {

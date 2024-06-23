@@ -94,7 +94,7 @@ How it works - demo of the raw payloads
 Import-Module -Name ./LoggingForge/LoggingForge.psd1
 
 [System.IO.File]::WriteAllText('/tmp/psremoting.log', '')
-Watch-PSSessionLog -Path /tmp/psremoting.log -Wait -Step | Format-PSSessionPacket
+Watch-PSSessionLog -Path /tmp/psremoting.log -Wait | Format-PSSessionPacket
 
 $s = New-RemoteForgeSession Logging:/tmp/psremoting.log
 

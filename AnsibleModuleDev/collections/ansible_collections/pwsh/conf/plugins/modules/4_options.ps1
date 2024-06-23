@@ -50,7 +50,6 @@ $spec = @{
         , @('exclusive_set_1', 'exclusive_set_2', 'exclusive_set_3')
     )
     # Options in the value must be set if the key is also set
-    # Good when
     required_by = @{
         option_that_requires = @('option_required_by_1', 'option_required_by_2')
     }
