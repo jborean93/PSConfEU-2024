@@ -1,10 +1,8 @@
 [windows]
-# Change HOSTNAME to the hostname or IP of the target Windows host
 win-host ansible_host=HOSTNAME
 
 [windows:vars]
-# Change USERNAME and PASSWORD to username and password of the Windows host.
-ansible_user=USERNAME
-ansible_password=PASSWORD
+ansible_user=ansible-test
+ansible_password=Password123
 ansible_connection=psrp
 ansible_port=5985

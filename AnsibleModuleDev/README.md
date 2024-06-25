@@ -9,36 +9,62 @@ This is a demo that goes through development of Windows modules for Ansible.
 If you only have a Windows environment, the simplest way to run Ansible would be to do it from WSL.
 
 ## Setup
-The first step is to install Ansible on the Linux or macOS environment.
-I find the best way to do this is to use a Python virtual environment as it isolates the dependencies into a single package and won't impact the global environment.
-The following steps will create a virtual environment called `psconfeu` in the current directory, activate that environment, then install the Python dependencies used in this demo (Ansible, pypsrp, smbprotocol).
-
-```bash
-python3 -m venv psconfeu
-source psconfeu/bin/activate
-pip install -r requirements.txt
-```
-
-Otherwise you can install as per the Ansible documentation https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html.
-
-Once installed you should be able to run the following to verify Ansible works and install the base-line Windows collection:
-
-```bash
-ansible --version
-ansible-galaxy collection install ansible.windows -p collections --force
-```
-
-Once Ansible is running create a copy of `inventory.template` and call the file `inventory`.
-Fill in the hostname, username, and password for the target Windows host.
-If targeting the local Windows host use `localhost` with the username/password filled out.
-On the target Windows host make sure that WinRM and PSRemoting has been setup.
+This setup example is a guide on when running on a Windows instance.
+It will install WSL2, VSCode, and configure the Windows host for WinRM connections.
+Some steps may be different depending on your host setup.
 
 ```powershell
-winrm quickconfig -q
-Enable-PSRemoting -Force
+# Install Chocolatey, vscode, and WSL2
+Set-ExecutionPolicy Bypass -Scope Process -Force
+iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+choco install -y vscode
+wsl --install
+
+# Configure LocalAccountTokenFilterPolicy to allow admin network logons
+$regInfo = @{
+    Path         = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
+    Name         = "LocalAccountTokenFilterPolicy"
+    Value        = 1
+    PropertyType = "DWord"
+    Force        = $true
+}
+New-ItemProperty @regInfo
+
+# WSL2 requires a reboot
+Restart-Computer -Force
 ```
 
-Running the following should show `Transport = HTTP` and `Port = 5985`.
+After the reboot the WSL terminal should open up asking for your username and password, in our example we want to set the user to `ansible` and the password as any value we wish.
+Once ready we need to configure out WSL instance and Ansible.
+
+```bash
+sudo apt-get update
+sudo apt-get install -y git python3 python3-pip python3-venv
+
+python3 -m venv ~/ansible-venv
+source ~/ansible-venv/bin/activate
+
+git clone https://github.com/jborean93/PSConfEU-2024.git
+cd PSConfEU-2024/AnsibleModuleDev
+pip install -r requirements.txt
+ansible-galaxy collection install ansible.windows
+
+ansible-galaxy collection list
+```
+
+Once Ansible is configured we want to ensure that Windows is setup to allow WinRM connection.
+On PowerShell we should run the following to create a test local user and enable WinRM/PSRemoting:
+
+```powershell
+$pass = ConvertTo-SecureString -AsPlainText -Force Password123
+New-LocalUser -Name ansible-test -Password $pass
+Add-LocalGroupMember -Group Administrators -Member ansible-test
+
+Enable-PSRemoting -Force
+winrm e winrm/config/listener
+```
+
+The output of `winrm e winrm/config/listener` should show `Transport = HTTP` and `Port = 5985`.
 
 ```powershell
 winrm e winrm/config/listener
@@ -54,9 +80,19 @@ winrm e winrm/config/listener
 #     ListeningOn = ...
 ```
 
-Once Ansible and WinRM has been configured we should be able to run `ansible windows -m ansible.windows.win_ping` to verify everything is set up and working.
+The final step is to open VSCode, install the WSL remoting extension, the PowerShell extension, and connect to our WSL instance.
+To connect to the WSL instance, press `F1`, type in `WSL` and select the `WSL: Connect to WSL`.
+When VSCode is connected, we want to open the folder to `/home/ansible/PSConfEU-2024/AnsibleModuleDev/`.
 
-```
+From there we can setup our inventory and test out Ansible against our Windows host.
+Press ``ctrl+shift+` `` to open a terminal window, setup our inventory, activate our Ansible venv and run the `win_ping` test:
+
+```bash
+cp inventory.template inventory
+sed -i "s/HOSTNAME/$( hostname ).local/g" inventory
+source ~/ansible-venv/bin/activate
+ansible windows -m ansible.windows.win_ping
+
 win-host | SUCCESS =>
     changed: false
     ping: pong
@@ -314,80 +350,12 @@ On the Windows host, open up PowerShell, change to a directory where you want to
 Once in that directory run the following code to setup the VSCode tasks and module launcher script.
 
 ```powershell
-$devPath = Join-Path $pwd.Path 'PSConfEU'
-if (-not (Test-Path -LiteralPath $devPath)) {
-    New-Item -Path $devPath -ItemType Directory -Force
-}
+# In our demo we are using the temp D drive setup on our VMs.
+# If using a different host you can change to any other directory
+cd d:\
+powershell -ExecutionPolicy ByPass -File '\\wsl$\Ubuntu\home\ansible\PSConfEU-2024\AnsibleModuleDev\setup-vscode-runner.ps1' -Verbose
 
-& {
-    $ProgressPreference = 'SilentlyContinue'
-    $ansibleUrl = 'http://github.com/ansible/ansible/archive/stable-2.17.zip'
-    Invoke-WebRequest -Uri $ansibleUrl -OutFile $devPath/ansible.zip
-    Expand-Archive -LiteralPath $devPath/ansible.zip -DestinationPath $devPath
-}
-
-Remove-Item -LiteralPath $devPath/ansible.zip -Force
-Move-Item -LiteralPath $devPath/ansible-stable-2.17 -Destination $devPath/ansible
-
-Set-Content -LiteralPath $devPath/run.ps1 -Value @'
-param (
-    [Parameter(Mandatory, Position = 0)]
-    [string]
-    $Module
-)
-
-$ErrorActionPreference = "Stop"
-
-$execWrapperPath = "$PSScriptRoot\ansible\lib\ansible\executor\powershell\exec_wrapper.ps1"
-$execWrapperAst = [System.Management.Automation.Language.Parser]::ParseFile($execWrapperPath, [ref]$null, [ref]$null)
-$commonFunctions = $execWrapperAst.FindAll({
-    $args[0] -is [System.Management.Automation.Language.VariableExpressionAst] `
-        -and $args[0].VariablePath.UserPath -eq 'script:common_functions'
-}, $true)
-. $commonFunctions.Parent.Right.Expression.ScriptBlock.GetScriptBlock()
-Remove-Variable -Name execWrapperPath
-Remove-Variable -Name execWrapperAst
-Remove-Variable -Name commonFunctions
-
-$complex_args = ConvertFrom-AnsibleJson (Get-Content "$PSScriptRoot\$Module.json" -Raw)
-$complex_args._ansible_module_name = $Module
-if (-not $complex_args.ContainsKey('_ansible_check_mode')) {
-    $complex_args._ansible_check_mode = $false
-}
-if (-not $complex_args.ContainsKey('_ansible_diff')) {
-    $complex_args._ansible_diff = $false
-}
-
-Import-Module -Name "$PSScriptRoot\ansible\lib\ansible\module_utils\powershell\Ansible.ModuleUtils.AddType.psm1"
-Add-CSharpType -References @(
-    [System.IO.File]::ReadAllText("$PSScriptRoot\ansible\lib\ansible\module_utils\csharp\Ansible.Basic.cs")
-) -IncludeDebugInfo
-
-& "$PSScriptRoot\$Module.ps1"
-'@
-
-$vsCodeFolder = Join-Path $devPath '.vscode'
-if (-not (Test-Path -LiteralPath $vsCodeFolder)) {
-    New-Item -Path $vsCodeFolder -ItemType Directory
-}
-Set-Content -LiteralPath $vsCodeFolder/launch.json @'
-{
-    "configurations": [
-        {
-            "name": "Run Ansible Module",
-            "type": "PowerShell",
-            "request": "launch",
-            "script": "${workspaceFolder}/run.ps1",
-            "args": [
-                "${fileBasenameNoExtension}"
-            ],
-            "cwd": "${cwd}"
-        }
-    ]
-}
-'@
-
-code $devPath
+code PSConfEU
 ```
 
 Copy across [7_psrepository_debug.ps1](collections/ansible_collections/pwsh/conf/plugins/modules/7_psrepository_debug.ps1) and place it in `$devPath\psrepository.ps1` directory created from the script above.
