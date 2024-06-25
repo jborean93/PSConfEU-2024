@@ -367,6 +367,7 @@ FodyWeavers.xsd
 # Custom
 AnsibleModuleDev/inventory
 AnsibleModuleDev/psconfeu
+AnsibleModuleDev/VMDetails-*.json
 AnsibleModuleDev/collections/ansible_collections/ansible*
 AnsibleModuleDev/collections/ansible_collections/pwsh/conf/plugins/modules/psrepository.*
 AnsibleModuleDev/collections/ansible_collections/pwsh/conf/tests/integration/inventory.winrm

@@ -1,3 +1,6 @@
+[CmdletBinding()]
+param ()
+
 $devPath = Join-Path $pwd.Path 'PSConfEU'
 if (-not (Test-Path -LiteralPath $devPath)) {
     New-Item -Path $devPath -ItemType Directory -Force | Out-Null
@@ -6,14 +9,19 @@ if (-not (Test-Path -LiteralPath $devPath)) {
 & {
     $ProgressPreference = 'SilentlyContinue'
     $ansibleUrl = 'http://github.com/ansible/ansible/archive/stable-2.17.zip'
+    Write-Verbose -Message "Downloading Ansible from $ansibleUrl"
     Invoke-WebRequest -Uri $ansibleUrl -OutFile $devPath/ansible.zip
-    Expand-Archive -LiteralPath $devPath/ansible.zip -DestinationPath $devPath
 }
+
+Add-Type -AssemblyName System.IO.Compression.FileSystem | Out-Null
+Add-Type -AssemblyName System.IO.Compression | Out-Null
+Write-Verbose -Message "Extracting zip archive to $devPath"
+[System.IO.Compression.ZipFile]::ExtractToDirectory("$devPath/ansible.zip", $devPath)
 
 Remove-Item -LiteralPath $devPath/ansible.zip -Force
 Move-Item -LiteralPath $devPath/ansible-stable-2.17 -Destination $devPath/ansible
 
-
+Write-Verbose -Message "Creating run.ps1 script"
 Set-Content -LiteralPath $devPath/run.ps1 -Value @'
 param (
     [Parameter(Mandatory, Position = 0)]
@@ -51,9 +59,10 @@ Add-CSharpType -References @(
 & "$PSScriptRoot\$Module.ps1"
 '@
 
+Write-Verbose -Message "Creating vscode launch configuration"
 $vsCodeFolder = Join-Path $devPath '.vscode'
 if (-not (Test-Path -LiteralPath $vsCodeFolder)) {
-    New-Item -Path $vsCodeFolder -ItemType Directory
+    New-Item -Path $vsCodeFolder -ItemType Directory | Out-Null
 }
 Set-Content -LiteralPath $vsCodeFolder/launch.json @'
 {
