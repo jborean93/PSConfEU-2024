@@ -47,9 +47,9 @@ source ~/ansible-venv/bin/activate
 git clone https://github.com/jborean93/PSConfEU-2024.git
 cd PSConfEU-2024/AnsibleModuleDev
 pip install -r requirements.txt
-ansible-galaxy collection install ansible.windows
+ansible-galaxy collection install ansible.windows -p collections
 
-ansible-galaxy collection list
+ansible --version
 ```
 
 Once Ansible is configured we want to ensure that Windows is setup to allow WinRM connection.
@@ -62,6 +62,10 @@ Add-LocalGroupMember -Group Administrators -Member ansible-test
 
 Enable-PSRemoting -Force
 winrm e winrm/config/listener
+
+# Needed for our example
+Install-Module -Name Microsoft.PowerShell.PSResourceGet -Scope AllUsers -Force
+Get-NetFirewallRule -DisplayGroup "File and Printer Sharing" -Direction In | Enable-NetFirewallRule
 ```
 
 The output of `winrm e winrm/config/listener` should show `Transport = HTTP` and `Port = 5985`.
@@ -91,7 +95,7 @@ Press ``ctrl+shift+` `` to open a terminal window, setup our inventory, activate
 cp inventory.template inventory
 sed -i "s/HOSTNAME/$( hostname ).local/g" inventory
 source ~/ansible-venv/bin/activate
-ansible windows -m ansible.windows.win_ping
+ansible windows --playbook-dir . -m ansible.windows.win_ping
 
 win-host | SUCCESS =>
     changed: false
@@ -622,7 +626,7 @@ There is no hard rule to follow the above, it is just a common pattern that has 
 Before running the tests we will need to copy our inventory file to [collections/ansible_collections/pwsh/conf/tests/integration](./collections/ansible_collections/pwsh/conf/tests/integration) under the filename `inventory.winrm`.
 
 ```bash
-cp inventory collections/ansible_collections/tests/integration/inventory.winrm
+cp inventory collections/ansible_collections/pwsh/conf/tests/integration/inventory.winrm
 ```
 
 This file is used by `ansible-test` as the test inventory and will run the test target under the hosts of the `windows` group.
@@ -630,6 +634,7 @@ To run the tests we run the following command:
 
 ```bash
 # This must be run in the collection root
+cd collections/ansible_collections/pwsh/conf
 ansible-test windows-integration psrepository
 ```
 
@@ -644,6 +649,11 @@ An action plugin can run specific commands on the target host, copy/fetch files 
 For example the `win_copy` module is implemented as an action plugin that invokes `win_stat` to get the remote file statistics, copies a file through the connection plugin, then invokes the `win_copy` module to copy that file into place.
 
 An example action plugin is the [smb_copy.py](./collections/ansible_collections/ansible/windows/plugins/action/smb_copy.py) which is similar to `win_copy` but will transfer the file using the SMB protocol which is faster than WinRM.
+To run this we can use a pre-defined playbook [11_action.yml](./11_action.yml):
+
+```bash
+ansible-playbook 11_action.yml -vv
+```
 
 ### 12. Module Utils
 Module utils can be used to create code that is usable across multiple modules.

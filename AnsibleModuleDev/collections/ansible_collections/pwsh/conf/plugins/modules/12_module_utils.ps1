@@ -10,7 +10,7 @@ $spec = @{
 $module = [Ansible.Basic.AnsibleModule]::Create($args, $spec)
 
 $module.Result.pwsh = Get-PowerShellModuleInfo
-# $module.Result.csharp = [Pwsh.Conf.CSharp.Utils]::GetCSharpInfo()
+$module.Result.csharp = [Pwsh.Conf.CSharp.Utils]::GetCSharpInfo()
 # $module.Result.csharp = [ansible_collections.pwsh.conf.plugins.module_utils.CSharp.Utils]::GetCSharpInfo()
 
 $module.ExitJson()
