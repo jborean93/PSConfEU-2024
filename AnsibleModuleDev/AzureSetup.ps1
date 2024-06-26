@@ -68,7 +68,7 @@ if (-not $vnet) {
 }
 $subnetId = $vnet.Subnets[0].Id
 
-1..$Count | ForEach-Object -Parallel {
+1..$Count | ForEach-Object -ThrottleLimit $Count -Parallel {
     $ResourceGroup = $using:ResourceGroup
     $Location = $using:Location
     $subnetId = $using:subnetId
